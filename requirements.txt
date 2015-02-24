@@ -1,0 +1,9 @@
+PyTumblr==0.0.6
+click==3.3
+httplib2==0.9
+httpretty==0.8.7
+oauth2==1.5.211
+oauthlib==0.7.2
+requests==2.5.2
+requests-oauthlib==0.4.2
+wsgiref==0.1.2

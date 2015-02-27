@@ -32,5 +32,3 @@ def assert_dumblr_root(f):
             sys.exit(1)
         return f(*args, **kwargs)
     return g
-
-            

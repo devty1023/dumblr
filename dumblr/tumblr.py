@@ -27,14 +27,19 @@ class Tumblr(object):
         draft_posts = filter(lambda x : x['type'] == 'text', draft_posts)
 
         ## remove every key but
-        keeps = ['body', 'date', 'format', 'slug', 'title', 'tags']
+        keeps = ['body', 'date', 'format', 'slug', 'title', 'tags', 'id']
         pub_posts = [{keep : post[keep] for keep in keeps} for post in pub_posts]
         draft_posts = [{keep : post[keep] for keep in keeps} for post in draft_posts]
 
         ## include state 
         pub_posts = map(lambda x : dict(x, state='published'), pub_posts)
         draft_posts = map(lambda x : dict(x, state='draft'), draft_posts)
-        
+
+        ## escape title - it is treated specially since yaml needs to parse it
+        pub_posts = map(lambda x : dict(x, title=repr(x['title'])), pub_posts)
+        draft_posts = map(lambda x : dict(x, title=repr(x['title'])), draft_posts)
+
+        ## sort by id
         return pub_posts + draft_posts
 
     @staticmethod
@@ -52,6 +57,7 @@ class Tumblr(object):
         if not ckey or not skey:
             click.secho("Please register a Tumblr app to obtain OAuth keys")
             click.secho("https://www.tumblr.com/oauth/apps", bold=True)
+            click.launch("https://www.tumblr.com/oauth/apps")
             ckey = click.prompt("Consumer key")
             skey = click.prompt("Secret key")
         
@@ -63,6 +69,7 @@ class Tumblr(object):
         auth_url = oauth.authorization_url(urls['authorize'])
         click.secho("Please visit the following URL and authorize the app:")
         click.secho(auth_url, bold=True)
+        click.launch(auth_url)
         resp = click.prompt("Paste the URL of the redirected page")
         oauth_response = oauth.parse_authorization_response(resp)
         verifier = oauth_response.get('oauth_verifier')

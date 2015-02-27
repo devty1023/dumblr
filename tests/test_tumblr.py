@@ -15,18 +15,16 @@ def tumblr(tokens):
                   tokens['oauth_token_secret'])
 
 def test_oauth():
-    # TODO
+    ## TODO
     assert True
 
 def test_tumblr_info(tumblr):
     i = tumblr.info()
-    props = {'name' : 'devty1023'}
+    props = {'name' : "devty1023"}
     assert all([i[prop] == props[prop] for prop in props.keys()])
 
 def test_tumblr_posts(tumblr):
     i = tumblr.get_text_posts('devty1023')
     assert len(i) > 0
-    props = ['body', 'date', 'format', 'slug', 'title', 'tags', 'state']
+    props = ['body', 'date', 'format', 'slug', 'title', 'tags', 'state', 'id']
     assert all([prop in i[0] for prop in props])
-    
-    

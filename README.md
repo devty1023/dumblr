@@ -5,7 +5,7 @@ dumblr is an attempt to use tumblr like a blog backed by a static site generator
 ## Example
 
 ```
-# INSTALLATION
+## INSTALLATION
 $> mkdir dumblr_blog && cd dumblr_blog
 
 $> virtualenv env && source env/bin/activate
@@ -31,6 +31,7 @@ Commands:
   push    Pushes changes to Tumblr
   status  Checks status of posts in file system
 
+## INITIALIZE DUMBLR DIRECTORY
 $> dumblr init
 Please register a Tumblr app to obtain OAuth keys
 https://www.tumblr.com/oauth/apps

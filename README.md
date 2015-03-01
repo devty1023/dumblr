@@ -44,7 +44,7 @@ Paste the URL of the redirected page: <redirect_url>?oauth_token=foobar
 
 Initialized dumblr at ~/dumblr_blog/.dumblr
 
-## Pull text posts from your tumblr blog
+## PULL TEXT POSTS FROM TUMBLR BLOG
 $> dumblr pull
 # From blog <your blog>
 #
@@ -53,7 +53,7 @@ $> dumblr pull
 #
 # Total : 2
 
-## Load pulled posts to your file system
+## LOAD PULLED POST TO YOUR FS
 $> dumblr load
 # Loading to ~/dumblr_blog/posts
 #
@@ -62,7 +62,7 @@ $> dumblr load
 #
 # Total : 2
 
-## Posts are loaded as files (markdown or html)
+## POSTS ARE LOADED AS FILES (MARKDOWN OR HTML)
 $> ls
 env posts
 
@@ -82,7 +82,7 @@ id: 123456789
 
 hello world!
 
-## Create new posts
+## CREATE NEW POST
 $> dumblr new "test3"
 # Created new post ~/dumblr_blog/posts/test3.markdown
 
@@ -97,7 +97,7 @@ state: draft
 id: -1
 ---
 
-## or a new html post
+## OR A NEW HTML POST
 $> dumblr new "test4" -f html
 # Created new post ~/dumblr_blog/posts/test4.html
 
@@ -109,7 +109,7 @@ $> dumblr status
 #	new post	: test4.html
 #
 
-## modify texts of existing post
+## MAKE CHANGES TO EXISTING POSTS
 $> vim/emacs/subline/atom/etc test1.markdown ## changed body to "goodbye world!"
 
 $> dumblr status
@@ -120,7 +120,7 @@ $> dumblr status
 #	new post	: test4.html
 #
 
-## you can check what changed
+## AND REVIEW WHAT CHANGED
 $> dumblr diff
 # Diff result:
 #
@@ -131,7 +131,7 @@ test1.markdown
 	+ goodbye world!
 #
 
-## now push the changes to tumblr
+## NOW PUSH THE CHANGES BACK TO TUMBLR
 $> dumblr push
 # Push result:
 #

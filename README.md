@@ -1,16 +1,16 @@
 # dumblr
 
-dumblr is a command line tool for working with text posts from tumblr.
-
-dumblr is born out of my desire to use tumblr like a blog backed by a static site generator.
+dumblr is an attempt to use tumblr like a blog backed by a static site generator.
 
 ## Example
 
 ```
 # INSTALLATION
 $> mkdir dumblr_blog && cd dumblr_blog
+
 $> virtualenv env && source env/bin/activate
 New python executables in ...
+
 $> pip install dumblr
 ...
 Cleaning up...
@@ -36,9 +36,11 @@ Please register a Tumblr app to obtain OAuth keys
 https://www.tumblr.com/oauth/apps
 Consumer key: <paste your consumer key here>
 Secret key: <paste your secret key here>
+
 Please visit the following URL and authorize the app:
 http://www.tumblr.com/oauth/authorize?oauth_token=foobar
 Paste the URL of the redirected page: <redirect_url>?oauth_token=foobar
+
 Initialized dumblr at ~/dumblr_blog/.dumblr
 
 ## Pull text posts from your tumblr blog
@@ -54,7 +56,7 @@ $> dumblr pull
 $> dumblr load
 # Loading to ~/dumblr_blog/posts
 #
-#	test1.markdown
+#       test1.markdown
 #       test2.markdown
 #
 # Total : 2
@@ -62,6 +64,7 @@ $> dumblr load
 ## Posts are loaded as files (markdown or html)
 $> ls
 env posts
+
 $> ls posts/
 test1.markdown test2.markdown
 
@@ -81,6 +84,7 @@ hello world!
 ## Create new posts
 $> dumblr new "test3"
 # Created new post ~/dumblr_blog/posts/test3.markdown
+
 $> cat posts/test3.markdown
 ---
 title: test3
@@ -106,6 +110,7 @@ $> dumblr status
 
 ## modify texts of existing post
 $> vim/emacs/subline/atom/etc test1.markdown ## changed body to "goodbye world!"
+
 $> dumblr status
 # Status on directory ~/dumblr_blog/posts
 #
@@ -136,5 +141,5 @@ $> dumblr push
 ```
 
 ## BUGS
-- Bugs with unicode is abound
-- Bugs with yaml frontmatter is abound.
+- Bugs with unicode abound :(
+- Bugs with yaml frontmatter abound :(

@@ -28,3 +28,7 @@ def test_tumblr_posts(tumblr):
     assert len(i) > 0
     props = ['body', 'date', 'format', 'slug', 'title', 'tags', 'state', 'id']
     assert all([prop in i[0] for prop in props])
+
+def test_tumblr_create_post(tumblr):
+    ## TODO: How can i test this?
+    pass

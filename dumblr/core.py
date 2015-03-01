@@ -59,6 +59,7 @@ class Dumblr(object):
                           d['config']['secret_key'],
                           d['config']['oauth_token'],
                           d['config']['oauth_token_secret'])
+
         ## IMPORTANT: We only consider blog named after username
         ## Later update `might` address this issue
         d['tumblr'] = t.info()
@@ -68,7 +69,7 @@ class Dumblr(object):
 
         os.makedirs(self.dumblr_path)
 
-        with open(self.CONFIG_FILE, "w") as f:
+        with open(self.CONFIG_FILE, "wb") as f:
             cPickle.dump(d, f)
 
         return self.dumblr_path
@@ -83,16 +84,12 @@ class Dumblr(object):
         dumped to the file system on self.posts_path.
         """
         ## get all published and draft text posts from tumblr
-        config = self.CONFIG['config']
         t_config = self.CONFIG['tumblr']
-        t = tumblr.Tumblr(config['consumer_key'],
-                          config['secret_key'],
-                          config['oauth_token'],
-                          config['oauth_token_secret'])
+        t = self._get_tumblr()
         posts = t.get_text_posts(t_config['name'])
 
         ## save posts to TUMBLR_FILE
-        with open(self.TUMBLR_FILE, "w") as f:
+        with open(self.TUMBLR_FILE, "wb") as f:
             cPickle.dump(posts, f)
 
         return posts, t_config['name']
@@ -107,20 +104,9 @@ class Dumblr(object):
               'slug' : slug,
               'tags' : [],
               'format' : _format,
-              'state' : "new",
+              'state' : "draft",
               'id': -1}
-
-        frontmatter = dedent("""\
-        ---
-        title: {title}
-        date: {date}
-        slug: {slug}
-        tags: {tags}
-        format: {format}
-        state: {state}
-        id: {id}
-        ---
-        """.format(**fm))
+        frontmatter = self._dump_frontmatter(fm)
 
         with open(fpath, 'w') as f:
             f.write(frontmatter)
@@ -147,20 +133,9 @@ class Dumblr(object):
         for post in posts:
             filename = "{}.{}".format(post['slug'], post['format'])
             filepath = os.path.join(self.posts_path, filename)
+            frontmatter = self._dump_frontmatter(post)
 
-            frontmatter = dedent("""\
-                ---
-                title: {title}
-                date: {date}
-                slug: {slug}
-                tags: {tags}
-                format: {format}
-                state: {state}
-                id: {id}
-                ---
-            """.format(**post))
-
-            with open(filepath, "w") as f:
+            with open(filepath, "wb") as f:
                 f.write(frontmatter + post['body'])
 
         return ["{}.{}".format(post['slug'], post['format'])
@@ -172,9 +147,11 @@ class Dumblr(object):
         Each valid text post in self.posts_path is
         parsed to generate a list of posts.
         """
-        posts_f = [os.path.join(self.posts_path, f) 
-                   for f in os.listdir(self.posts_path) 
-                   if os.path.isfile(os.path.join(self.posts_path,f))]
+        posts_f = []
+        if os.path.exists(self.posts_path):
+            posts_f = [os.path.join(self.posts_path, f) 
+                       for f in os.listdir(self.posts_path) 
+                       if os.path.isfile(os.path.join(self.posts_path,f))]
         
         posts = map(Dumblr.parse_frontmatter, posts_f)
         posts = [post for post in posts if post] # remove None
@@ -193,23 +170,30 @@ class Dumblr(object):
             except:
                 ## user never pulled from tumblr
                 pass
-
-        ## we potentially have 2 tasks
-        ## creating a post OR updating a post
-        create = []
-        update = []
+            
+        posts = []
         for fs_p in fs_posts:
-            ## find corresponding posts on tumblr
+            ## find corresponding posts on TUMBLR
             tb_p = next((p for p in tb_posts
                          if p['id'] == fs_p['id']), None)
             if tb_p:
                 diff = Dumblr.diff_post(tb_p, fs_p)
                 if diff:
-                    update.append({'goal' : fs_p, 'diff' : diff})
+                    posts.append({'action' : 'update',
+                                  'post' : fs_p,
+                                  'diff' : diff})
             else:
-                create.append(fs_p)
+                posts.append({'action' : 'create',
+                              'post' : fs_p})
 
-        return create, update
+        for tb_p in tb_posts:
+            fs_p = next((p for p in fs_posts
+                         if p['id'] == tb_p['id']), None)
+            if not fs_p:
+                posts.append({'action' : 'delete',
+                              'post' : tb_p})
+            
+        return posts
 
     def diff(self):
         """Reports specific difference for a given list
@@ -218,24 +202,61 @@ class Dumblr(object):
         Returns a dictionary that maps postname 
         to its diff report
         """
-        _, updated = self.status()
+        posts = self.status()
+        updates = filter(lambda x : x['action'] == 'update', posts)
 
-        diff_result = {}
         d = difflib.Differ()
-        for candidate in updated:
-            post = candidate['goal']
-            diffs = candidate['diff']
+        diff_result = {}
+        for update in updates:
+            post = update['post']
+            diffs = update['diff']
 
             diff_attr = {}
             for k, diff in diffs.iteritems():
-                diff_str = list(d.compare(wrap(diff[0], 60), wrap(diff[1], 60)))
+                print diff
+                diff_str = list(d.compare(wrap(str(diff[0]), 60),
+                                          wrap(str(diff[1]), 60)))
                 diff_attr[k] = "\n\t".join(diff_str)
 
             postname = "{}.{}".format(post['slug'], post['format'])
             diff_result[postname]= diff_attr
 
         return diff_result
+
+    def push(self):
+        """Pushes changes in the posts in the filesystem
+        directly to dumblr
+        """
+        t_config = self.CONFIG['tumblr']
+        t = self._get_tumblr()
+    
+    def _get_tumblr(self):
+        config = self.CONFIG['config']
+        return tumblr.Tumblr(config['consumer_key'],
+                             config['secret_key'],
+                             config['oauth_token'],
+                             config['oauth_token_secret'])
+
+    def _dump_frontmatter(self, post):
+        ## python's list of string prints
+        ## strings within single quotes
+        ## this doesn't work well with
+        ## python's yaml library
+        post['tags'] = "[{0}]".format(", ".join([tag for tag in post['tags']]))
+        frontmatter = dedent("""\
+        ---
+        title: {title}
+        date: {date}
+        slug: {slug}
+        tags: {tags}
+        format: {format}
+        state: {state}
+        id: {id}
+        ---
+        """.format(**post))
+        return frontmatter
             
+        
     @staticmethod
     def diff_post(p1, p2):
         """Diffs two of posts and returns

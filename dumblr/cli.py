@@ -36,6 +36,7 @@ def init(d):
 def pull(d):
     """Pulls posts from Tumblr"""
     posts, name = d.pull()
+
     click.secho("# From blog {}\n#".format(name), bold=True)
     for post in posts:
         click.secho("#\tRetrieved : {}.{}".format(post['slug'], post['format']))
@@ -46,12 +47,11 @@ def pull(d):
 @assert_dumblr_root
 def load(dumblr):
     """Loads posts pulled from tumblr to fs"""
-    click.secho("# Loading to {}\n#".format(dumblr.posts_path), bold=True)
-
     posts = dumblr.load()
+
+    click.secho("# Loading to {}\n#".format(dumblr.posts_path), bold=True)
     for post in posts:
         click.secho("#\t{}".format(post))
-
     click.secho("#\n# Total : {}".format(len(posts)), bold=True)
 
 @cli.command()
@@ -64,6 +64,7 @@ def load(dumblr):
 def new(dumblr, postname, format):
     """Create new post"""
     post = dumblr.new(postname, format)
+
     click.secho("# Created new post {}".format(post))
 
 @cli.command()
@@ -71,22 +72,22 @@ def new(dumblr, postname, format):
 @assert_dumblr_root
 def status(dumblr):
     """Checks status of posts in file system"""
+    posts = dumblr.status()
+
     click.secho("# Status on directory {}\n#".format(dumblr.posts_path),
                 bold=True)
-
-    create, update = dumblr.status()
-
-    if create or update:
-        if create:
-            for post in create:
-                click.secho("#\tnew post\t: {}.{}".format(post['slug'],
-                                                          post['format']))
-        if update:
-            for i, post in enumerate(update):
-                click.secho("#\tmodified\t: {}.{}".format(post['goal']['slug'],
-                                                          post['goal']['format']))
+    if posts:
+        for post in posts:
+            if post['action'] == 'create':
+                echo_str =  "#\tnew post\t: {}.{}"
+            elif post['action'] == 'update':
+                echo_str = "#\tmodified\t: {}.{}"
+            else:
+                continue
+            click.secho(echo_str.format(post['post']['slug'],
+                                        post['post']['format']))
     else:
-        click.secho("#No change detected")
+        click.secho("#\tNo change detected")
     click.secho("#")
 
 @cli.command()
@@ -112,6 +113,6 @@ def diff(dumblr):
 @cli.command()
 @click.pass_context
 def push(ctx):
-    """Pushes commited changes to Tumblr"""
+    """Pushes changes to Tumblr"""
     pass
 

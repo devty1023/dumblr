@@ -28,7 +28,7 @@ def dumblr(tmpdir, request):
     d.dump(dat)
 
     ## test TUMBLR posts file
-    ## TUMBLR will contain 2 files
+    ## TUMBLR will contain 3 files (ids 0 - 2)
     d = tmpdir.join(".dumblr").join("TUMBLR")
     posts = [{'body' : "hello world",
               'title' : "testpost-{}".format(i),
@@ -37,13 +37,13 @@ def dumblr(tmpdir, request):
               'tags' : [],
               'state' : "published",
               'id' : i,
-              'format' : "markdown"} for i in range(2)]
+              'format' : "markdown"} for i in range(3)]
     d.dump(posts)
 
     ## test dumblr posts in fs
-    ## file system will contain 3 files
+    ## file system will contain 3 files (ids 1 - 3)
     d = tmpdir.mkdir("posts")
-    for i in range(3):
+    for i in range(1, 4):
         fname = "testpost-{}".format(i) + ".markdown"
         post_meta = {'title' : "testpost-{}".format(i),
                      'date' : "2015-02-19 02:14:57 GMT",
@@ -103,7 +103,7 @@ def test_dumblr_load(dumblr, tmpdir):
     ## overriding existing posts dir
     p = tmpdir.join("posts")
     assert p.ensure(dir=True)
-    assert len(p.listdir()) == 3 # should retain num post
+    assert len(p.listdir()) == 4
 
     ## creating posts dir
     tmpdir.join("posts").remove()
@@ -111,7 +111,7 @@ def test_dumblr_load(dumblr, tmpdir):
     
     p = tmpdir.join("posts")
     assert p.ensure(dir=True)
-    assert len(p.listdir()) == 2
+    assert len(p.listdir()) == 3
 
     p0 = p.join("testpost-0.markdown")
     assert p0.ensure()
@@ -124,7 +124,7 @@ def test_dumblr_dump(dumblr, tmpdir):
               'tags' : [],
               'state' : "published",
               'id' : i,
-              'format' : "markdown"} for i in range(3)]
+              'format' : "markdown"} for i in range(1, 4)]
     l_posts = dumblr.dump()
     assert posts == l_posts
 
@@ -136,31 +136,35 @@ def test_dumblr_new(dumblr, tmpdir):
     meta = {'title' : "hello world!",
             'slug' : "hello-world",
             'tags' : [],
-            'state' : "new",
+            'state' : "draft",
             'id' : -1,
             'format' : "markdown"}
     f_meta = Dumblr.parse_frontmatter(f.strpath)
     assert all([f_meta[k] == v for k,v in meta.iteritems()])
 
 def test_dumblr_status(dumblr):
-    create, update = dumblr.status()
+    posts = dumblr.status()
+    create = filter(lambda x : x['action'] == 'create', posts)
+    update = filter(lambda x : x['action'] == 'update', posts)
+    delete = filter(lambda x : x['action'] == 'delete', posts)
     assert len(create) == 1
-    assert {'title' : "testpost-2",
+    assert {'title' : "testpost-3",
             'date' : "2015-02-19 02:14:57 GMT",
-            'slug' : "testpost-2",
+            'slug' : "testpost-3",
             'tags' : [],
             'state' : "published",
-            'id' : 2,
+            'id' : 3,
             'format' : "markdown",
-            'body' : "hello world!"} == create[0]
+            'body' : "hello world!"} == create[0]['post']
     assert 2 == len(update)
+    assert len(delete) == 1
 
 def test_dumblr_diff(dumblr):
     "TODO: a little hard to test this.."
     diffs = dumblr.diff()
     assert 2 == len(diffs)
-    assert diffs.has_key('testpost-0.markdown')
     assert diffs.has_key('testpost-1.markdown')
+    assert diffs.has_key('testpost-2.markdown')
 
 def test_dumblr_static_diff_post():
     assert {'title' : ["foo", "Foo"],
@@ -169,14 +173,14 @@ def test_dumblr_static_diff_post():
                 {'title': 'Foo', 'body': 'Bar', 'id' : 1})
 
 def test_dumblr_static_parse_frontmatter(dumblr, tmpdir):
-    p = tmpdir.join("posts").join("testpost-0.markdown")
+    p = tmpdir.join("posts").join("testpost-1.markdown")
     fm = {'body' : "hello world!",
-          'title' : "testpost-0",
+          'title' : "testpost-1",
           'date' : "2015-02-19 02:14:57 GMT",
-          'slug' : "testpost-0",
+          'slug' : "testpost-1",
           'tags' : [],
           'state' : "published",
-          'id' : 0,
+          'id' : 1,
           'format' : "markdown"}
     assert fm == Dumblr.parse_frontmatter(p.strpath)
 

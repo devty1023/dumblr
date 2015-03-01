@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import click
 import pytumblr
 from requests_oauthlib import OAuth1Session
@@ -39,8 +40,27 @@ class Tumblr(object):
         pub_posts = map(lambda x : dict(x, title=repr(x['title'])), pub_posts)
         draft_posts = map(lambda x : dict(x, title=repr(x['title'])), draft_posts)
 
-        ## sort by id
+        ## unicode things :p
+#        pub_posts = map(lambda x : dict(x, body=x['body'].encode('utf-8'),
+#                                           tags=[t.encode('utf-8') for t in tags],
+#                                           title=x['title'].encode('utf-u'), pub_posts)
+#        draft_posts = map(lambda x : dict(x, body=x['body'].encode('utf-8')), draft_posts)
+
         return pub_posts + draft_posts
+    
+    def create_post(self, post):
+        info = self.info()
+        ## we do not include 'id'
+        post.pop('id')
+        return self.tumblr.create_text(info['name'], type='text', **post)
+
+    def delete_post(self, post):
+        info = self.info()
+        return self.tumblr.delete_post(info['name'], post['id'])
+
+    def update_post(self, post):
+        info = self.info()
+        return self.tumblr.edit_post(info['name'], type='text', **post)
 
     @staticmethod
     def oauth(ckey=None, skey=None):

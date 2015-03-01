@@ -8,6 +8,7 @@ import yaml
 import re
 import shutil
 import tumblr
+from codecs import open
 from textwrap import dedent, wrap
 from unidecode import unidecode
 from utils import get_dumblr_root
@@ -69,7 +70,7 @@ class Dumblr(object):
 
         os.makedirs(self.dumblr_path)
 
-        with open(self.CONFIG_FILE, "wb") as f:
+        with open(self.CONFIG_FILE, 'w') as f:
             cPickle.dump(d, f)
 
         return self.dumblr_path
@@ -89,7 +90,7 @@ class Dumblr(object):
         posts = t.get_text_posts(t_config['name'])
 
         ## save posts to TUMBLR_FILE
-        with open(self.TUMBLR_FILE, "wb") as f:
+        with open(self.TUMBLR_FILE, 'w') as f:
             cPickle.dump(posts, f)
 
         return posts, t_config['name']
@@ -108,7 +109,7 @@ class Dumblr(object):
               'id': -1}
         frontmatter = self._dump_frontmatter(fm)
 
-        with open(fpath, 'w') as f:
+        with open(fpath, 'w', encoding='utf-8') as f:
             f.write(frontmatter)
 
         return fpath
@@ -127,6 +128,7 @@ class Dumblr(object):
             os.makedirs(self.posts_path)
             
         posts = {}
+
         with open(self.TUMBLR_FILE) as f:
             posts = cPickle.load(f)
 
@@ -135,8 +137,9 @@ class Dumblr(object):
             filepath = os.path.join(self.posts_path, filename)
             frontmatter = self._dump_frontmatter(post)
 
-            with open(filepath, "wb") as f:
-                f.write(frontmatter + post['body'])
+            with open(filepath, "w", encoding='utf-8') as f:
+                body = frontmatter + post['body']
+                f.write(body)
 
         return ["{}.{}".format(post['slug'], post['format'])
                 for post in posts]
@@ -242,8 +245,8 @@ class Dumblr(object):
         ## strings within single quotes
         ## this doesn't work well with
         ## python's yaml library
-        post['tags'] = "[{0}]".format(", ".join([tag for tag in post['tags']]))
-        frontmatter = dedent("""\
+        post['tags'] = u"[{0}]".format(u", ".join([tag for tag in post['tags']]))
+        frontmatter = dedent(u"""\
         ---
         title: {title}
         date: {date}
@@ -287,7 +290,7 @@ class Dumblr(object):
     def parse_frontmatter(filename):
         reg_fm = re.compile(r'^-{3,}$', re.MULTILINE)
         try:
-            with open(filename) as f:
+            with open(filename, encoding='utf-8') as f:
                 _, fm, content = reg_fm.split(f.read(), 2)
                 p = yaml.load(fm)
                 p.update({'body' : content.lstrip()})

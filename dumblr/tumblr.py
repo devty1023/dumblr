@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import click
 import pytumblr
+from exceptions import DumblrException
+from httplib2 import ServerNotFoundError
+from requests.exceptions import RequestException
 from requests_oauthlib import OAuth1Session
 
 class Tumblr(object):
@@ -16,14 +19,21 @@ class Tumblr(object):
         Filters out all but the following:
         - 'user' 'name'
         """
-        d = self.tumblr.info()
+        try:
+            d = self.tumblr.info()
+        except ServerNotFoundError as e:
+            raise DumblrException(str(e))
         return {'name' : d['user']['name']}
 
     def get_text_posts(self, name):
         """Retrieves all text posts from tumblr, including drafts
         """
-        pub_posts = self.tumblr.posts(name, type='text', filter='raw')['posts']
-        draft_posts = self.tumblr.drafts(name, filter='raw')['posts']
+        try:
+            pub_posts = self.tumblr.posts(name, type='text', filter='raw')['posts']
+            draft_posts = self.tumblr.drafts(name, filter='raw')['posts']
+        except ServerNotFoundError as e:
+            raise DumblrException(str(e))
+
         ## drafts api call cannot filter by type
         draft_posts = filter(lambda x : x['type'] == 'text', draft_posts)
 
@@ -42,21 +52,26 @@ class Tumblr(object):
 
         return pub_posts + draft_posts
     
-    def create_post(self, post):
-        info = self.info()
-        ## we do not include 'id'
-        post.pop('id')
-        return self.tumblr.create_text(info['name'], type='text', 
+    def push_post(self, action, post):
+        try:
+            info = self.info()
+            
+            if action == 'create':
+                ## we do not include 'id'
+                post.pop('id')
+                return self.tumblr.create_text(info['name'], type='text', 
                                        **Tumblr.escape_unicode(post))
+            elif action == 'update':
+                return self.tumblr.edit_post(info['name'], type='text',
+                                             **Tumblr.escape_unicode(post))
 
-    def delete_post(self, post):
-        info = self.info()
-        return self.tumblr.delete_post(info['name'], post['id'])
+            elif action == 'delete':
+                return self.tumblr.delete_post(info['name'], post['id'])
 
-    def update_post(self, post):
-        info = self.info()
-        return self.tumblr.edit_post(info['name'], type='text',
-                                     **Tumblr.escape_unicode(post))
+            return None
+
+        except ServerNotFoundError as e:
+            raise DumblrException(str(e))
 
     @staticmethod
     def escape_unicode(post):
@@ -88,25 +103,29 @@ class Tumblr(object):
             click.launch("https://www.tumblr.com/oauth/apps")
             ckey = click.prompt("Consumer key")
             skey = click.prompt("Secret key")
-        
-        oauth = OAuth1Session(ckey, client_secret=skey)
-        resp = oauth.fetch_request_token(urls['request'])
-        okey = resp.get('oauth_token')
-        osecret = resp.get('oauth_token_secret')
 
-        auth_url = oauth.authorization_url(urls['authorize'])
-        click.secho("Please visit the following URL and authorize the app:")
-        click.secho(auth_url, bold=True)
-        click.launch(auth_url)
-        resp = click.prompt("Paste the URL of the redirected page")
-        oauth_response = oauth.parse_authorization_response(resp)
-        verifier = oauth_response.get('oauth_verifier')
+        try:
+            oauth = OAuth1Session(ckey, client_secret=skey)
+            resp = oauth.fetch_request_token(urls['request'])
+            okey = resp.get('oauth_token')
+            osecret = resp.get('oauth_token_secret')
 
-        oauth = OAuth1Session(ckey,
-                              client_secret=skey,
-                              resource_owner_key=okey,
-                              resource_owner_secret=osecret,
-                              verifier=verifier)
-        tokens = oauth.fetch_access_token(urls["access"])
+            auth_url = oauth.authorization_url(urls['authorize'])
+            click.secho("Please visit the following URL and authorize the app:")
+            click.secho(auth_url, bold=True)
+            click.launch(auth_url)
+            resp = click.prompt("Paste the URL of the redirected page")
+            oauth_response = oauth.parse_authorization_response(resp)
+            verifier = oauth_response.get('oauth_verifier')
+            
+            oauth = OAuth1Session(ckey,
+                                  client_secret=skey,
+                                  resource_owner_key=okey,
+                                  resource_owner_secret=osecret,
+                                  verifier=verifier)
+            tokens = oauth.fetch_access_token(urls["access"])
+        except RequestException as e:
+            raise DumblrException(str(e))
+
         tokens.update({'consumer_key' : ckey, 'secret_key' : skey})
         return tokens

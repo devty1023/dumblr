@@ -1,5 +1,6 @@
 import click
 from core import Dumblr
+from exceptions import DumblrException
 from utils import get_dumblr_root, assert_dumblr_root
 
 pass_dumblr = click.make_pass_decorator(Dumblr, ensure=True)
@@ -27,7 +28,13 @@ def init(d):
         click.secho("Dumblr is already active")
         if not click.confirm('Do you want to reinitiazlied dumblr?'):
             return
-    root = d.initialize()
+
+    try:
+        root = d.initialize()
+    except DumblrException as e:
+        click.secho("FATAL: {}".format(e))
+        return
+
     click.secho("Initialized dumblr at {}".format(root))
 
 @cli.command()
@@ -35,7 +42,11 @@ def init(d):
 @assert_dumblr_root
 def pull(d):
     """Pulls posts from Tumblr"""
-    posts, name = d.pull()
+    try:
+        posts, name = d.pull()
+    except DumblrException as e:
+        click.secho("FATAL: {}".format(e))
+        return
 
     click.secho("# From blog {}\n#".format(name), bold=True)
     for post in posts:
@@ -100,7 +111,7 @@ def diff(dumblr):
     """
     posts = dumblr.diff()
     
-    click.secho("# Diff Result:\n#", bold=True)
+    click.secho("# Diff result:\n#", bold=True)
     if posts:
         for post, diffs in posts.iteritems():
             click.secho(post+"\n", bold=True)
@@ -117,6 +128,15 @@ def diff(dumblr):
 @assert_dumblr_root
 def push(dumblr):
     """Pushes changes to Tumblr"""
-    resp = dumblr.push()
-    click.secho(str(resp))
+    try:
+        resps = dumblr.push()
+    except DumblrException as e:
+        click.secho("FATAL: {}".format(e))
+        return
+
+    click.secho("# Push result:\n#", bold=True)
+    for resp in resps:
+        click.secho("#\t{}\t: {}".format(resp['post'],
+                                         resp['status']))
+    click.secho("#")
 

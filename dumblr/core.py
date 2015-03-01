@@ -9,6 +9,7 @@ import re
 import shutil
 import tumblr
 from codecs import open
+from exceptions import DumblrException
 from textwrap import dedent, wrap
 from unidecode import unidecode
 from utils import get_dumblr_root
@@ -235,27 +236,30 @@ class Dumblr(object):
         """Pushes changes in the posts in the filesystem
         directly to dumblr
         """
+        t = self._get_tumblr()
         changes = self.status()
-        resp = [{'post' : change['post'],
-                 'status' : self._push_tumblr(change)}
+
+        ## push the changes
+        resps = [{'post' : change['post']['slug'],
+                 'status' : t.push_post(change['action'],
+                                        change['post'])}
                 for change in changes]
-        ## pull the changes
+
+        ## push to tumblr may fail
+        ## then the respo objet will NOT have 'id' key
+        ## (behavior from tumblr api)
+        for resp in resps:
+            if 'id' in resp['status']:
+                resp['status'] = True
+            else:
+                resp['status'] = status['meta']
+
+        ## update fs system
         self.pull()
         self.load()
 
-    def _push_tumblr(self, change):
-        t = self._get_tumblr()
-        if change['action'] == 'create':
-            return t.create_post(change['post'])
+        return resps
 
-        elif change['action'] == 'update':
-            return t.update_post(change['post'])
-
-        elif change['action'] == 'delete':
-            return t.delete_post(change['post'])
-
-        return False
-        
     def _get_tumblr(self):
         config = self.CONFIG['config']
         return tumblr.Tumblr(config['consumer_key'],

@@ -34,7 +34,7 @@ def init(d):
     except DumblrException as e:
         click.secho("FATAL: {}".format(e))
         return
-
+        
     click.secho("Initialized dumblr at {}".format(root))
 
 @cli.command()
@@ -120,7 +120,6 @@ def diff(dumblr):
                 click.secho("\t"+diff+"\n")
     else:
         click.secho("#\tNothing to do here")
-
     click.secho("#")
 
 @cli.command()
@@ -136,7 +135,7 @@ def push(dumblr):
 
     click.secho("# Push result:\n#", bold=True)
     for resp in resps:
-        click.secho("#\t{}\t: {}".format(resp['post'],
-                                         resp['status']))
+        click.secho("#\t{}\t: {}".format(resp['status'],
+                                         resp['post']))
     click.secho("#")
 

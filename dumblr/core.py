@@ -30,20 +30,7 @@ class Dumblr(object):
         self.CONFIG_FILE = os.path.join(self.dumblr_path, "DUMBLR")
         # tumblr file contains text posts in tumblr as observed at the time
         self.TUMBLR_FILE = os.path.join(self.dumblr_path, "TUMBLR")
-
         self.CONFIG = self.load_data()
-
-
-    def load_data(self):
-        """Unpickles data file stored in self.CONFIG_FILE
-        If the file does not exists, returns default info (nothing).
-        """
-        dat = {}
-        if os.path.isfile(self.CONFIG_FILE):
-            with open(self.CONFIG_FILE) as f:
-                loaded = cPickle.load(f)
-                dat.update(loaded)
-        return dat
 
     def initialize(self):
         """Completes the following tasks.
@@ -68,7 +55,6 @@ class Dumblr(object):
 
         if os.path.isdir(self.dumblr_path):
             shutil.rmtree(self.dumblr_path)
-
         os.makedirs(self.dumblr_path)
 
         with open(self.CONFIG_FILE, 'w') as f:
@@ -85,12 +71,10 @@ class Dumblr(object):
         If load is set to true, post data will be converted and
         dumped to the file system on self.posts_path.
         """
-        ## get all published and draft text posts from tumblr
         t_config = self.CONFIG['tumblr']
         t = self._get_tumblr()
         posts = t.get_text_posts(t_config['name'])
 
-        ## save posts to TUMBLR_FILE
         with open(self.TUMBLR_FILE, 'w') as f:
             cPickle.dump(posts, f)
 
@@ -111,7 +95,7 @@ class Dumblr(object):
               'format' : _format,
               'state' : "draft",
               'id': -1}
-        frontmatter = self._dump_frontmatter(fm)
+        frontmatter = Dumblr.dump_frontmatter(fm)
 
         with open(fpath, 'w', encoding='utf-8') as f:
             f.write(frontmatter)
@@ -139,9 +123,9 @@ class Dumblr(object):
         for post in posts:
             filename = "{}.{}".format(post['slug'], post['format'])
             filepath = os.path.join(self.posts_path, filename)
-            frontmatter = self._dump_frontmatter(post)
+            frontmatter = Dumblr.dump_frontmatter(post)
 
-            with open(filepath, "w", encoding='utf-8') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 body = frontmatter + post['body']
                 f.write(body)
 
@@ -170,13 +154,13 @@ class Dumblr(object):
         """
         fs_posts = self.dump()
         tb_posts = []
-
-        with open(self.TUMBLR_FILE) as f:
-            try:
+        
+        try:
+            with open(self.TUMBLR_FILE) as f:
                 tb_posts = cPickle.load(f)
-            except:
-                ## user never pulled from tumblr
-                pass
+        except:
+            ## user never pulled from tumblr
+            pass
             
         posts = []
         for fs_p in fs_posts:
@@ -194,6 +178,7 @@ class Dumblr(object):
                               'post' : fs_p})
 
         for tb_p in tb_posts:
+            ## find corresponding post in fs
             fs_p = next((p for p in fs_posts
                          if p['id'] == tb_p['id']), None)
             if not fs_p:
@@ -267,7 +252,19 @@ class Dumblr(object):
                              config['oauth_token'],
                              config['oauth_token_secret'])
 
-    def _dump_frontmatter(self, post):
+    def load_data(self):
+        """Unpickles data file stored in self.CONFIG_FILE
+        If the file does not exists, returns default info (nothing).
+        """
+        dat = {}
+        if os.path.isfile(self.CONFIG_FILE):
+            with open(self.CONFIG_FILE) as f:
+                loaded = cPickle.load(f)
+                dat.update(loaded)
+        return dat
+
+    @staticmethod
+    def dump_frontmatter(post):
         ## python's list of string prints
         ## strings within single quotes
         ## this doesn't work well with

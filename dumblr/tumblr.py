@@ -64,12 +64,9 @@ class Tumblr(object):
             elif action == 'update':
                 return self.tumblr.edit_post(info['name'], type='text',
                                              **Tumblr.escape_unicode(post))
-
             elif action == 'delete':
                 return self.tumblr.delete_post(info['name'], post['id'])
-
             return None
-
         except ServerNotFoundError as e:
             raise DumblrException(str(e))
 
@@ -124,6 +121,7 @@ class Tumblr(object):
                                   resource_owner_secret=osecret,
                                   verifier=verifier)
             tokens = oauth.fetch_access_token(urls["access"])
+
         except RequestException as e:
             raise DumblrException(str(e))
 

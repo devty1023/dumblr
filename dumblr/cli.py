@@ -82,6 +82,8 @@ def status(dumblr):
                 echo_str =  "#\tnew post\t: {}.{}"
             elif post['action'] == 'update':
                 echo_str = "#\tmodified\t: {}.{}"
+            elif post['action'] == 'delete':
+                echo_str = "#\t deleted\t: {}.{}"
             else:
                 continue
             click.secho(echo_str.format(post['post']['slug'],
@@ -111,8 +113,10 @@ def diff(dumblr):
     click.secho("#")
 
 @cli.command()
-@click.pass_context
-def push(ctx):
+@pass_dumblr
+@assert_dumblr_root
+def push(dumblr):
     """Pushes changes to Tumblr"""
-    pass
+    resp = dumblr.push()
+    click.secho(str(resp))
 

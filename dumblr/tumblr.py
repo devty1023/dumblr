@@ -40,19 +40,14 @@ class Tumblr(object):
         pub_posts = map(lambda x : dict(x, title=repr(x['title'])), pub_posts)
         draft_posts = map(lambda x : dict(x, title=repr(x['title'])), draft_posts)
 
-        ## unicode things :p
-#        pub_posts = map(lambda x : dict(x, body=x['body'].encode('utf-8'),
-#                                           tags=[t.encode('utf-8') for t in tags],
-#                                           title=x['title'].encode('utf-u'), pub_posts)
-#        draft_posts = map(lambda x : dict(x, body=x['body'].encode('utf-8')), draft_posts)
-
         return pub_posts + draft_posts
     
     def create_post(self, post):
         info = self.info()
         ## we do not include 'id'
         post.pop('id')
-        return self.tumblr.create_text(info['name'], type='text', **post)
+        return self.tumblr.create_text(info['name'], type='text', 
+                                       **Tumblr.escape_unicode(post))
 
     def delete_post(self, post):
         info = self.info()
@@ -60,7 +55,20 @@ class Tumblr(object):
 
     def update_post(self, post):
         info = self.info()
-        return self.tumblr.edit_post(info['name'], type='text', **post)
+        return self.tumblr.edit_post(info['name'], type='text',
+                                     **Tumblr.escape_unicode(post))
+
+    @staticmethod
+    def escape_unicode(post):
+        """pytumblr does not support unicode too well
+        """
+        for k, v in post.iteritems():
+            if isinstance(v, basestring):
+                post[k] = v.encode('utf-8')
+            elif isinstance(v, list):
+                post[k] = [l.encode('utf-8') if isinstance(l, basestring) else 
+                           str(l)for l in v]
+        return post
 
     @staticmethod
     def oauth(ckey=None, skey=None):

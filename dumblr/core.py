@@ -96,6 +96,9 @@ class Dumblr(object):
         return posts, t_config['name']
 
     def new(self, postname, _format):
+        if not os.path.isdir(self.posts_path):
+            os.makedirs(self.posts_path)
+
         slug = Dumblr.slugify(postname)
         fpath = os.path.join(self.posts_path, 
                              "{}.{}".format(slug, _format))
@@ -195,7 +198,6 @@ class Dumblr(object):
             if not fs_p:
                 posts.append({'action' : 'delete',
                               'post' : tb_p})
-            
         return posts
 
     def diff(self):
@@ -216,13 +218,16 @@ class Dumblr(object):
 
             diff_attr = {}
             for k, diff in diffs.iteritems():
-                print diff
-                diff_str = list(d.compare(wrap(str(diff[0]), 60),
-                                          wrap(str(diff[1]), 60)))
+                ## if not a string, convert to string first!
+                if not isinstance(diff[0], basestring):
+                    diff[0] = str(diff[0])
+                    diff[1] = str(diff[1])
+                diff_str = list(d.compare(wrap(diff[0].encode('utf-8'), 60),
+                                          wrap(diff[1].encode('utf-8'), 60)))
                 diff_attr[k] = "\n\t".join(diff_str)
 
             postname = "{}.{}".format(post['slug'], post['format'])
-            diff_result[postname]= diff_attr
+            diff_result[postname] = diff_attr
 
         return diff_result
 
@@ -230,9 +235,27 @@ class Dumblr(object):
         """Pushes changes in the posts in the filesystem
         directly to dumblr
         """
-        t_config = self.CONFIG['tumblr']
+        changes = self.status()
+        resp = [{'post' : change['post'],
+                 'status' : self._push_tumblr(change)}
+                for change in changes]
+        ## pull the changes
+        self.pull()
+        self.load()
+
+    def _push_tumblr(self, change):
         t = self._get_tumblr()
-    
+        if change['action'] == 'create':
+            return t.create_post(change['post'])
+
+        elif change['action'] == 'update':
+            return t.update_post(change['post'])
+
+        elif change['action'] == 'delete':
+            return t.delete_post(change['post'])
+
+        return False
+        
     def _get_tumblr(self):
         config = self.CONFIG['config']
         return tumblr.Tumblr(config['consumer_key'],
@@ -258,7 +281,6 @@ class Dumblr(object):
         ---
         """.format(**post))
         return frontmatter
-            
         
     @staticmethod
     def diff_post(p1, p2):
@@ -297,7 +319,3 @@ class Dumblr(object):
                 return p
         except (ValueError, IOError) as e:
             return None
-
-
-
-        
